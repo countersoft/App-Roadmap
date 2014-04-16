@@ -133,7 +133,7 @@ namespace Roadmap
             return new WidgetResult() { Success = true, Markup = new WidgetMarkup("Roadmap") };
         }
 
-        private RoadmapAppModel BuildModelData(int versionId, IEnumerable<Countersoft.Gemini.Commons.Entity.Version> iVersions)
+        private RoadmapAppModel BuildModelData(int versionId, IEnumerable<Countersoft.Gemini.Commons.Entity.Version> iVersions, IssuesFilter OriginalFilter = null)
         {
             StringBuilder builder = new StringBuilder();
             
@@ -238,6 +238,13 @@ namespace Roadmap
                     
                     filter = IssuesFilter.CreateVersionFilter(CurrentUser.Entity.Id, CurrentProject.Entity.Id, version.Entity.Id);
 
+                    if (OriginalFilter != null)
+                    {
+                        filter.SortField = OriginalFilter.SortField;
+                        filter.SortOrder = OriginalFilter.SortOrder;
+                    }
+
+                    ItemFilterManager.SetSortedColumns(gridColumns, filter);
                     model.Filter = IssueFilterHelper.PopulateModel(model.Filter, filter, filter, PermissionsManager, ItemFilterManager, IssueFilterHelper.GetViewableFields(filter, ProjectManager, MetaManager), false);
                 }
             }
@@ -358,7 +365,7 @@ namespace Roadmap
                 issues = IssueManager.GetRoadmap(UserContext.Project.Entity.Id, filter, versionId);
             }
 
-            RoadmapAppModel model = BuildModelData(versionId, versions);
+            RoadmapAppModel model = BuildModelData(versionId, versions, filter);
             
             model.Issues = issues;
 
