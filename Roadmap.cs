@@ -273,6 +273,8 @@ namespace Roadmap
             }
 
             model.Sort = sort.ToString();
+            
+            model.CurrentPageCard = CurrentCard;
 
             return model;
         }
