@@ -43,6 +43,8 @@ namespace Roadmap
     {
         public override WidgetResult Show(IssueDto issue = null)
         {
+            var filter = IsSessionFilter() || CurrentCard.CardType != ProjectTemplatePageType.Custom && "app/roadmap/view".Equals(CurrentCard.Url, StringComparison.InvariantCultureIgnoreCase) ? HttpSessionManager.GetFilter(CurrentCard.Id, IssuesFilter.CreateProjectFilter(CurrentUser.Entity.Id, CurrentProject.Entity.Id)) : CurrentCard.Filter;
+            HttpSessionManager.SetFilter(CurrentCard.Id, filter);
             var workspaceProjects = new List<int>();
             
             int? currentProjectId = 0;
