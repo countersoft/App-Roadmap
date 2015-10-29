@@ -452,17 +452,8 @@ namespace Roadmap
 
             List<ScreenField> fields = GetRoadmapFields(projectId);
 
-            IssuesFilter filter = HttpSessionManager.GetFilter(CurrentCard.Id);
+            IssuesFilter filter = ItemFilterManager.TransformFilter(IssuesFilter.CreateProjectFilter(CurrentUser.Entity.Id, projectId));
             
-            if (filter == null)
-            {
-                filter = ItemFilterManager.TransformFilter(IssuesFilter.CreateProjectFilter(CurrentUser.Entity.Id, projectId));
-            }
-            else
-            {
-                filter = ItemFilterManager.TransformFilter(filter);
-            }
-
             SetCurrentProjectFromFilter(filter);
 
             model.Columns = GridManager.GetAvailableColumns(filter.GetProjects(), IssueFilterHelper.AggregateTypes(filter, ProjectManager, MetaManager), fields);
