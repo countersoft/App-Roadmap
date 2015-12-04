@@ -48,6 +48,7 @@ namespace Roadmap
             var workspaceProjects = new List<int>();
             
             int? currentProjectId = 0;
+            bool includeSubversions = false;
             
             int versionId = 0;
 
@@ -67,6 +68,7 @@ namespace Roadmap
                         currentProjectId = pageSettings.PageData.projectId;
                         
                         versionId = pageSettings.PageData.versionId;
+                        includeSubversions = pageSettings.PageData.includeSubversions;
                     }
                 }
             }
@@ -111,9 +113,20 @@ namespace Roadmap
                 }
             }
 
-            RoadmapAppModel model = BuildModelData(versionId, versions);
+            List<IssueDto> issues;
+            issues = IssueManager.GetRoadmap(UserContext.Project.Entity.Id, filter, versionId);
+            if (includeSubversions)
+            {
+                var child = versions.Where(v => v.ParentId == versionId).ToList();
+                AddChildVersions(versions.ToList(), UserContext.Project.Entity.Id, filter, child, ref issues);
+            }
+            
+            
+
+            RoadmapAppModel model = BuildModelData(versionId, versions, issues);
             
             model.ProjectList = new SelectList(viewableProjects, "Entity.Id", "Entity.Name", currentProjectId.GetValueOrDefault());
+            model.IncludeSubVersions = includeSubversions;
 
             if(pageSettings == null)
             {
@@ -135,7 +148,7 @@ namespace Roadmap
             return new WidgetResult() { Success = true, Markup = new WidgetMarkup("Roadmap") };
         }
 
-        private RoadmapAppModel BuildModelData(int versionId, IEnumerable<Countersoft.Gemini.Commons.Entity.Version> iVersions, IssuesFilter OriginalFilter = null)
+        private RoadmapAppModel BuildModelData(int versionId, IEnumerable<Countersoft.Gemini.Commons.Entity.Version> iVersions, List<IssueDto> issues, IssuesFilter OriginalFilter = null)
         {
             StringBuilder builder = new StringBuilder();
             
@@ -175,8 +188,6 @@ namespace Roadmap
 
                 if (version.Entity.Id == versionId)
                 {
-                    List<IssueDto> issues = IssueManager.GetRoadmap(UserContext.Project.Entity.Id, null, version.Entity.Id);
-
                     var visibility = GetRoadmapFields(UserContext.Project.Entity.Id);
 
                     var properties = GridManager.GetDisplayProperties(MetaManager.TypeGetAll(new List<ProjectDto>() { CurrentProject }), visibility, new List<int>() { version.Project.Entity.Id });
@@ -302,7 +313,7 @@ namespace Roadmap
         }
 
         [AppUrl("getroadmap")]
-        public ActionResult GetRoadmap(int versionId, int projectId)
+        public ActionResult GetRoadmap(int versionId, int projectId, bool includeSubVersions)
         {
             UserContext.Project = ProjectManager.Get(projectId);
 
@@ -361,19 +372,32 @@ namespace Roadmap
             }
 
             var version = VersionManager.Get(versionId);
-
             List<IssueDto> issues = new List<IssueDto>();
 
             if (version != null && !version.Entity.Released)
             {
                 issues = IssueManager.GetRoadmap(UserContext.Project.Entity.Id, filter, versionId);
+                if (includeSubVersions)
+                {
+                    var child = versions.Where(v => v.ParentId == version.Entity.Id).ToList();
+                    AddChildVersions(versions.ToList(), UserContext.Project.Entity.Id, filter, child, ref issues);
+                }
             }
 
-            RoadmapAppModel model = BuildModelData(versionId, versions, filter);
-            
+            RoadmapAppModel model = BuildModelData(versionId, versions, issues, filter);
+            model.IncludeSubVersions = includeSubVersions;
             model.Issues = issues;
 
             return JsonSuccess(new { success = true, grid = RenderPartialViewToString(this, "~/Views/Shared/DisplayTemplates/IssueDto.cshtml", model), statusBar = RenderPartialViewToString(this, AppManager.Instance.GetAppUrl("1F21A63F-94FF-46D0-8773-9E482EF0CA90", "views/StatusBar.cshtml"), model), versions = RenderPartialViewToString(this, AppManager.Instance.GetAppUrl("1F21A63F-94FF-46D0-8773-9E482EF0CA90", "views/VersionProgress.cshtml"), model) });
+        }
+
+        private void AddChildVersions(List<Countersoft.Gemini.Commons.Entity.Version> versions, int projectId, IssuesFilter filter, List<Countersoft.Gemini.Commons.Entity.Version> child, ref List<IssueDto> issues)
+        {
+            foreach (var version in child)
+            {
+                issues.AddRange(IssueManager.GetRoadmap(projectId, filter, version.Id));
+                AddChildVersions(versions, projectId, filter, versions.FindAll(v => v.ParentId == version.Id), ref issues);
+            }
         }
 
         [AppUrl("getissuerow")]

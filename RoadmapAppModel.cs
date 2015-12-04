@@ -21,6 +21,7 @@ namespace Roadmap
         public string VersionCards { get; set; }
         public string VersionLabel { get; set; }
         public int VersionId { get; set; }
+        public bool IncludeSubVersions { get; set; }
 
         // Status bar data - used on all pages
         public int Open { get; set; }
@@ -103,5 +104,6 @@ namespace Roadmap
     {
         public int versionId { get; set; }
         public int projectId { get; set; }
+        public bool includeSubversions { get; set; }
     }
 }

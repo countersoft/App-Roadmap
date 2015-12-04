@@ -2,3 +2,8 @@
 {
     visibility:hidden;
 }
+
+.roadmap label
+{
+    font-size:80%;
+}

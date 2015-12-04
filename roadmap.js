@@ -10,6 +10,8 @@
     {
         gemini_roadmap.currentVersionId = versionId;
         gemini_roadmap.currentProjectId = $('.roadmap #Projects1').val();
+        gemini_ui.fancyInputs('#includesub');
+        $('.roadmap .data-inner-container').on('ifChanged', '#includesub', gemini_roadmap.includeSubversions);
 
         gemini_filter.gridReorderCallback = function (fromColumn, toColumn)
         {
@@ -36,15 +38,15 @@
             $(this).closest('li').addClass('selected');
          
             gemini_roadmap.currentVersionId = $(this).attr('data-id');
-            gemini_filter.executeEndPoint = gemini_roadmap.executionUrl + gemini_roadmap.currentVersionId + '&projectId=' + gemini_roadmap.currentProjectId;
-            
+            gemini_roadmap.execEndpoint();
+                        
             gemini_roadmap.refreshRoadmap();
         });
 
         $('.roadmap #Projects1').change(function ()
         {
             gemini_roadmap.currentProjectId = $(this).val();
-            gemini_filter.executeEndPoint = gemini_roadmap.executionUrl + gemini_roadmap.currentVersionId + '&projectId=' + gemini_roadmap.currentProjectId;
+            gemini_roadmap.execEndpoint();
             gemini_roadmap.refreshRoadmap();
         });
 
@@ -96,6 +98,15 @@
                     });
             }
         });
+    },
+
+    includeSubversions: function() {
+        gemini_roadmap.execEndpoint(); 
+        gemini_roadmap.refreshRoadmap();
+    },
+
+    execEndpoint: function() {
+        gemini_filter.executeEndPoint = gemini_roadmap.executionUrl + gemini_roadmap.currentVersionId + '&projectId=' + gemini_roadmap.currentProjectId + "&includeSubVersions=" + $('#includesub').is(':checked');
     },
 
     initInlineEditing: function ()
@@ -168,7 +179,7 @@
         gemini_roadmap.currentVersionId = versionId;
         gemini_roadmap.currentProjectId = $('.roadmap #Projects1').val();
 
-        gemini_filter.executeEndPoint = executeEndPoint + versionId + '&projectId=' + gemini_roadmap.currentProjectId;
+        gemini_roadmap.execEndpoint();//  gemini_filter.executeEndPoint = executeEndPoint + versionId + '&projectId=' + gemini_roadmap.currentProjectId;
 
         gemini_filter.executeData = function ()
         {
@@ -197,13 +208,14 @@
         
         gemini_roadmap.showDelta(parseInt($('.roadmap #statusbar #data-remain').val()));
         gemini_roadmap.showDays(parseInt($('.roadmap #statusbar #data-estimated').val()), parseInt($('.roadmap #statusbar #data-logged').val()), parseInt($('.roadmap #statusbar #data-time-logged-over').val()));
+        gemini_ui.fancyInputs('#includesub');
     },
 
     refreshRoadmap: function (response)
     {
         var card = $.parseJSON(gemini_commons.htmlDecode(gemini_appnav.pageCard.Options['1F21A63F-94FF-46D0-8773-9E482EF0CA90']));
 
-        card.PageData = { projectId: parseInt(gemini_roadmap.currentProjectId), versionId: parseInt(gemini_roadmap.currentVersionId) };
+        card.PageData = { projectId: parseInt(gemini_roadmap.currentProjectId), versionId: parseInt(gemini_roadmap.currentVersionId), includeSubversions: $('#includesub').is(':checked') };
 
         if (response)
         {            
@@ -219,9 +231,10 @@
             {
                 gemini_roadmap.refreshPage(response.Result.Data);
                 gemini_filter.initDataTable();
+                gemini_ui.fancyInputs('#includesub');
             }
             gemini_ui.stopBusy('#modal-confirm #modal-button-yes');
-        }, function (error) { gemini_ui.stopBusy('#modal-confirm #modal-button-yes'); }, { versionId: gemini_roadmap.currentVersionId, projectId: gemini_roadmap.currentProjectId });
+        }, function (error) { gemini_ui.stopBusy('#modal-confirm #modal-button-yes'); }, { versionId: gemini_roadmap.currentVersionId, projectId: gemini_roadmap.currentProjectId, includeSubVersions: $('#includesub').is(':checked')});
     },
 
     refreshRow: function (response, issueId)
