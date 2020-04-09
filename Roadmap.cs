@@ -19,7 +19,6 @@ using Countersoft.Gemini.Infrastructure.Helpers;
 using Countersoft.Foundation.Commons.Enums;
 using Countersoft.Gemini.Commons.Entity.Security;
 using Countersoft.Gemini.Commons.Meta;
-using NHibernate;
 
 namespace Roadmap
 {
