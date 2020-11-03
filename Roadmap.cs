@@ -44,18 +44,17 @@ namespace Roadmap
         {
             var filter = IsSessionFilter() || CurrentCard.CardType != ProjectTemplatePageType.Custom && "app/roadmap/view".Equals(CurrentCard.Url, StringComparison.InvariantCultureIgnoreCase) ? HttpSessionManager.GetFilter(CurrentCard.Id, IssuesFilter.CreateProjectFilter(CurrentUser.Entity.Id, CurrentProject.Entity.Id)) : CurrentCard.Filter;
             HttpSessionManager.SetFilter(CurrentCard.Id, filter);
-            var workspaceProjects = new List<int>();
-            
+
             int? currentProjectId = 0;
             bool includeSubversions = false;
-            
+
             int versionId = 0;
 
             HttpSessionManager.Set<List<UserIssuesView>>(null, Constants.RoadmapSessionView);
 
             // Safety check required because of http://gemini.countersoft.com/project/DEV/21/item/5088
             PageSettings pageSettings = null;
-            
+
             try
             {
                 if(CurrentCard.Options.ContainsKey(AppGuid))
@@ -65,32 +64,40 @@ namespace Roadmap
                     if (pageSettings.PageData != null)
                     {
                         currentProjectId = pageSettings.PageData.projectId;
-                        
+
                         versionId = pageSettings.PageData.versionId;
                         includeSubversions = pageSettings.PageData.includeSubversions;
                     }
                 }
             }
-            catch (Exception ex){}
-
-            var activeProjects = ProjectManager.GetActive();
-            
-            var viewableProjects = new List<ProjectDto>();
-
-            if (activeProjects == null || activeProjects.Count == 0)
+            catch
             {
-                activeProjects = new List<ProjectDto>();
             }
-            else
+
+            //If no project is selected, select the first workspace project.
+            if((!currentProjectId.HasValue || currentProjectId.Value == 0) && filter.Projects.HasValue())
             {
-                viewableProjects = ProjectManager.GetAppViewableProjects(this);
+                try
+                {
+                    var workspaceProjects = filter.Projects.Split('|');
+
+                    if(workspaceProjects.Count() > 0)
+                    {
+                        currentProjectId = Convert.ToInt32(workspaceProjects[0]);
+                    }
+                }
+                catch
+                {
+                }
             }
+
+            var viewableProjects = ProjectManager.GetAppViewableProjects(this).ToList();
 
             if (!viewableProjects.Any(s => s.Entity.Id == currentProjectId.Value))
             {
                 currentProjectId = viewableProjects.Count > 0 ? viewableProjects.First().Entity.Id : 0;
             }
-
+            
             UserContext.Project = ProjectManager.Get(currentProjectId);
 
             IEnumerable<Countersoft.Gemini.Commons.Entity.Version> versions = null;
@@ -120,10 +127,8 @@ namespace Roadmap
                 AddChildVersions(versions.ToList(), UserContext.Project.Entity.Id, filter, child, ref issues);
             }
             
-            
-
             RoadmapAppModel model = BuildModelData(versionId, versions, issues);
-            
+
             model.ProjectList = new SelectList(viewableProjects, "Entity.Id", "Entity.Name", currentProjectId.GetValueOrDefault());
             model.IncludeSubVersions = includeSubversions;
 
@@ -133,7 +138,7 @@ namespace Roadmap
             }
 
             pageSettings.PageData.versionId = versionId;
-            
+
             pageSettings.PageData.projectId = currentProjectId.GetValueOrDefault();
 
             CurrentCard.Options[AppGuid] = pageSettings.ToJson();
